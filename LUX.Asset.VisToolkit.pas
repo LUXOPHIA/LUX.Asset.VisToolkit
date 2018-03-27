@@ -4,7 +4,7 @@ interface //####################################################################
 
 uses System.Generics.Collections,
      LUX, LUX.D1, LUX.D2, LUX.D3,
-     LUX.Asset.VisToolkit_,
+     LUX.Asset.VisToolkit.Poin,
      LUX.Asset.VisToolkit.Cells,
      LUX.Asset.VisToolkit.Cells.LINEAR,
      LUX.Asset.VisToolkit.Cells.QUADRATIC,
