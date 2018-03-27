@@ -2,10 +2,18 @@
 
 interface //#################################################################### ■
 
-uses System.Generics.Collections,
+uses System.Generics.Collections, System.RegularExpressions,
      LUX, LUX.D1, LUX.D2, LUX.D3,
      LUX.Asset.VisToolkit,
-     LUX.Asset.VisToolkit.Elems;
+     LUX.Asset.VisToolkit.Cells,
+     LUX.Asset.VisToolkit.Cells.LINEAR,
+     LUX.Asset.VisToolkit.Cells.QUADRATIC,
+     LUX.Asset.VisToolkit.Cells.CUBIC,
+     LUX.Asset.VisToolkit.Cells.CONVEX,
+     LUX.Asset.VisToolkit.Cells.POLYHEDRON,
+     LUX.Asset.VisToolkit.Cells.PARAMETRIC,
+     LUX.Asset.VisToolkit.Cells.HIGHER,
+     LUX.Asset.VisToolkit.Cells.LAGRANGE;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【型】
 
@@ -24,6 +32,7 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        _DataType :String;
        _Poins    :TObjectList<TvtkPoin>;
        _Cells    :TObjectList<TvtkCell>;
+       function ReadPOINTS2( const M_:TMatch ) :TArray<TSingle3D>;
      public
        constructor Create;
        destructor Destroy; override;
@@ -46,7 +55,7 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 implementation //############################################################### ■
 
-uses System.SysUtils, System.Classes, System.RegularExpressions;
+uses System.SysUtils, System.Classes;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【レコード】
 
@@ -78,62 +87,70 @@ end;
 
 /////////////////////////////////////////////////////////////////////// メソッド
 
+function TVisToolkit.ReadPOINTS2( const M_:TMatch ) :TArray<TSingle3D>;
+var
+   PsN, N, J :Integer;
+   PsT :String;
+   Vs :TArray<String>;
+   P :TSingle3D;
+begin
+     with M_ do
+     begin
+          PsN := Groups[ 1 ].Value.ToInteger;
+          PsT := Groups[ 2 ].Value;
+     end;
+
+     Assert( PsT = 'float', 'PsT = ' + PsT );
+
+     //Vs := ReadValues( 3 * PsN );
+
+     J := 0;
+     for N := 1 to PsN do
+     begin
+          P.X := Vs[ J ].ToSingle;  Inc( J );
+          P.Y := Vs[ J ].ToSingle;  Inc( J );
+          P.Z := Vs[ J ].ToSingle;  Inc( J );
+
+          Result := Result + [ P ];
+     end;
+end;
+
 procedure TVisToolkit.LoadFromFile( const FileName_:String );
 var
-   F :TStreamReader;
-   Vs :TArray<String>;
+   REs :TArray<TRegEx>;
+   S :TStreamReader;
 //······································
-     function GetLine :String;
+     function ReadLine :String;
      begin
-          while not F.EndOfStream do
+          while not S.EndOfStream do
           begin
-               Result := F.ReadLine;
+               Result := S.ReadLine;
 
                if Result <> '' then Break;
           end;
      end;
      //·································
-     procedure ReadValues( const VsN_:Integer );
+     function ReadValues( const N_:Integer ) :TArray<String>;
      begin
-          Vs := [];
+          Result := [];
 
-          while Length( Vs ) < VsN_ do Vs := Vs + GetLine.Split( [ ' ' ] );
+          while Length( Result ) < N_ do Result := Result + ReadLine.Split( [ ' ' ] );
      end;
-//······································
-var
-   R :TRegEx;
-   PsN, I, CsN, VsN, EsN, J, N :Integer;
-   PsT :String;
-   P :TSingle3D;
-   Poin :TvtkPoin;
-   Cell :TvtkCell;
-begin
-     F := TStreamReader.Create( FileName_, TEncoding.Default );
-     try
-          //////////
-
-          R := TRegEx.Create( '# +vtk +DataFile +Version +([^.]+\.[^.]+)' );
-
-          with R.Match( GetLine ) do
+     //·································
+     procedure ReadHeader;
+     begin
+          with TRegEx.Create( '# +vtk +DataFile +Version +([^.]+\.[^.]+)' ).Match( ReadLine ) do
           begin
                Assert( Success, '# vtk DataFile Version' );
 
                _Version := Groups[ 1 ].Value;
           end;
 
-          //////////
+          _Caption := ReadLine;
 
-          _Caption := GetLine;
+          _FileType := ReadLine;  Assert( _FileType = 'ASCII', '_FileType = ' + _FileType );
 
-          //////////
-
-          _FileType := GetLine;  Assert( _FileType = 'ASCII', '_FileType = ' + _FileType );
-
-          //////////
-
-          R := TRegEx.Create( 'DATASET +([^ ]+)' );
-
-          with R.Match( GetLine ) do
+          with TRegEx.Create( 'DATASET +([^ ]+)' ).Match( ReadLine ) do
           begin
                Assert( Success, 'DATASET' );
 
@@ -141,104 +158,148 @@ begin
           end;
 
           Assert( _DataType = 'UNSTRUCTURED_GRID', '_DataType = ' + _DataType );
-
-          //////////
-
-          R := TRegEx.Create( 'POINTS +([^ ]+) +([^ ]+)' );
-
-          with R.Match( GetLine ) do
+     end;
+     //·································
+     function ReadPoins( const M_:TMatch ) :TArray<TSingle3D>;
+     var
+        PsN, N, J :Integer;
+        PsT :String;
+        Vs :TArray<String>;
+        P :TSingle3D;
+     begin
+          with M_ do
           begin
-               Assert( Success, 'POINTS' );
-
                PsN := Groups[ 1 ].Value.ToInteger;
                PsT := Groups[ 2 ].Value;
           end;
 
-          ReadValues( 3 * PsN );
+          Assert( PsT = 'float', 'PsT = ' + PsT );
 
-          _Poins.Clear;
+          Vs := ReadValues( 3 * PsN );
 
-          I := 0;
-
+          J := 0;
           for N := 1 to PsN do
           begin
-               Poin := TvtkPoin.Create;
+               P.X := Vs[ J ].ToSingle;  Inc( J );
+               P.Y := Vs[ J ].ToSingle;  Inc( J );
+               P.Z := Vs[ J ].ToSingle;  Inc( J );
 
-               P.X := Vs[ I ].ToSingle;  Inc( I );
-               P.Y := Vs[ I ].ToSingle;  Inc( I );
-               P.Z := Vs[ I ].ToSingle;  Inc( I );
-
-               with Poin do
-               begin
-                    ID := _Poins.Count;
-
-                    Pos := P;
-               end;
-
-               _Poins.Add( Poin );
+               Result := Result + [ P ];
           end;
-
-          //////////
-
-          R := TRegEx.Create( 'CELLS +([^ ]+) +([^ ]+)' );
-
-          with R.Match( GetLine ) do
+     end;
+     //·································
+     function ReadCells( const M_:TMatch ) :TArray2<Integer>;
+     var
+        CsN, I, VsN, J, PsN, K :Integer;
+        Vs :TArray<String>;
+        Ps :TArray<Integer>;
+     begin
+          with M_ do
           begin
-               Assert( Success, 'CELLS' );
-
                CsN := Groups[ 1 ].Value.ToInteger;
                VsN := Groups[ 2 ].Value.ToInteger;
           end;
 
-          ReadValues( VsN );
+          Vs := ReadValues( VsN );
 
-          _Cells.Clear;
-
-          I := 0;
-
-          for N := 1 to CsN do
+          J := 0;
+          for I := 0 to CsN-1 do
           begin
-               PsN := Vs[ I ].ToInteger;  Inc( I );
+               PsN := Vs[ J ].ToInteger;  Inc( J );
 
-               Cell := TvtkCell.Create( PsN );
-
-               with Cell do
+               Ps := [];
+               for K := 0 to PsN-1 do
                begin
-                    ID := _Cells.Count;
-
-                    for J := 0 to PsN-1 do
-                    begin
-                         Poins[ J ] := Self._Poins[ Vs[ I ].ToInteger ];  Inc( I );
-                    end;
+                    Ps := Ps + [ Vs[ J ].ToInteger ];  Inc( J );
                end;
 
-               _Cells.Add( Cell );
+               Result := Result + [ Ps ];
           end;
+     end;
+     //·································
+     function ReadTypes( const M_:TMatch ) :TArray<TCellTypes>;
+     var
+        CsN, I :Integer;
+        Vs :TArray<String>;
+     begin
+          with M_ do CsN := Groups[ 1 ].Value.ToInteger;
 
-          //////////
+          Vs := ReadValues( CsN );
 
-          R := TRegEx.Create( 'CELL_TYPES +([^ ]+)' );
+          for I := 0 to CsN-1 do Result := Result + [ TCellTypes( Vs[ I ].ToInteger ) ];
+     end;
+//······································
+var
+   L :String;
+   I, K :Integer;
+   M :TMatch;
+   Ps :TArray<TSingle3D>;
+   Cs :TArray2<Integer>;
+   Ts :TArray<TCellTypes>;
+   Poin :TvtkPoin;
+   Cell :TvtkCell;
+begin
+     REs := [ TRegEx.Create( 'POINTS +([^ ]+) +([^ ]+)', [ TRegExOption.roCompiled ] ),
+              TRegEx.Create( 'CELLS +([^ ]+) +([^ ]+)' , [ TRegExOption.roCompiled ] ),
+              TRegEx.Create( 'CELL_TYPES +([^ ]+)'     , [ TRegExOption.roCompiled ] ) ];
 
-          with R.Match( GetLine ) do
-          begin
-               Assert( Success, 'CELL_TYPES' );
+     S := TStreamReader.Create( FileName_ );
+     try
+        ReadHeader;
 
-               CsN := Groups[ 1 ].Value.ToInteger;
-          end;
+        while not S.EndOfStream do
+        begin
+             L := S.ReadLine;  if L = '' then Continue;
 
-          ReadValues( CsN );
+             for I := 0 to High( REs ) do
+             begin
+                  M := REs[ I ].Match( L );
 
-          for I := 0 to CsN-1 do _Cells[ I ].Kind := TElemTypes( Vs[ I ].ToInteger );
-
-          //////////
-
-          //////////
-
-          //////////
-
+                  if M.Success then
+                  begin
+                       case I of
+                         0:Ps := ReadPoins( M );
+                         1:Cs := ReadCells( M );
+                         2:Ts := ReadTypes( M );
+                       end;
+                  end;
+             end;
+        end;
 
      finally
-            F.DisposeOf;
+            S.DisposeOf;
+     end;
+
+     _Poins.Clear;
+     for I := 0 to High( Ps ) do
+     begin
+          Poin := TvtkPoin.Create;
+
+          with Poin do
+          begin
+               ID := I;
+
+               Pos := Ps[ I ];
+          end;
+
+          _Poins.Add( Poin );
+     end;
+
+     _Cells.Clear;
+     for I := 0 to High( Ts ) do
+     begin
+          Cell := TvtkCell.New( Ts[ I ] );
+
+          with Cell do
+          begin
+               ID := I;
+
+               PoinsN := Length( Cs[ I ] );
+
+               for K := 0 to PoinsN-1 do Poins[ K ] := _Poins[ Cs[ I, K ] ];
+          end;
+
+          _Cells.Add( Cell );
      end;
 end;
 
