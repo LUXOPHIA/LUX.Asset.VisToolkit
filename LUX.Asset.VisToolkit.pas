@@ -29,11 +29,15 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
      private
      protected
        _Pos :TSingle3D;
+       _Scalar :Single;
+       _Vector :TSingle3D;
      public
        constructor Create;
        destructor Destroy; override;
        ///// プロパティ
-       property Pos :TSingle3D read _Pos write _Pos;
+       property Pos    :TSingle3D read _Pos    write _Pos   ;
+       property Scalar :Single    read _Scalar write _Scalar;
+       property Vector :TSingle3D read _Vector write _Vector;
      end;
 
 //const //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【定数】
