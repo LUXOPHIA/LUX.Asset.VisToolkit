@@ -1,4 +1,4 @@
-﻿unit LUX.Asset.VisToolkit.Model;
+﻿unit LUX.Asset.VisToolkit;
 
 interface //#################################################################### ■
 
