@@ -1,13 +1,13 @@
-﻿unit LUX.Asset.VisToolkit.Elems;
+﻿unit LUX.Asset.VisToolkit.Cells;
 
 interface //#################################################################### ■
 
-uses LUX, LUX.D1, LUX.D2, LUX.D3,
+uses LUX,
      LUX.Asset.VisToolkit;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【型】
 
-     TElemTypes = (
+     TCellTypes = (
        // Linear cells
        VTK_EMPTY_CELL                       = 00,
        VTK_VERTEX                           = 01,
@@ -72,7 +72,7 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        VTK_LAGRANGE_HEXAHEDRON              = 72,
        VTK_LAGRANGE_WEDGE                   = 73,
        VTK_LAGRANGE_PYRAMID                 = 74,
-       VTK_NUMBER_OF_CELL_TYPES                   );
+       VTK_NUMBER_OF_CELL_TYPES                  );
 
      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【レコード】
 
@@ -83,87 +83,21 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
      TvtkCell = class( TvtkElem )
      private
      protected
-       _Kind  :TElemTypes;
+       _Kind  :TCellTypes;
        _Poins :TArray<TvtkPoin>;
        ///// アクセス
        function GetPoins( const I_:Integer ) :TvtkPoin;
        procedure SetPoins( const I_:Integer; const Poin_:TvtkPoin );
+       function GetPoinsN :Integer;
+       procedure SetPoinsN( const PoinsN_:Integer );
      public
-       constructor Create( const PoinsN_:Integer );
+       class function New( const Kind_:TCellTypes ) :TvtkCell;
+       constructor Create;
        destructor Destroy; override;
        ///// プロパティ
-       property Kind                      :TElemTypes read   _Kind  write   _Kind ;
-       property Poins[ const I_:Integer ] :TvtkPoin   read GetPoins write SetPoins;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell01
-
-     TvtkCell01 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell05
-
-     TvtkCell05 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell09
-
-     TvtkCell09 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell10
-
-     TvtkCell10 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell12
-
-     TvtkCell12 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell13
-
-     TvtkCell13 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell14
-
-     TvtkCell14 = class( TvtkCell )
-     private
-     protected
-     public
-       constructor Create;
-       destructor Destroy; override;
+       property Kind                      :TCellTypes read   _Kind   write   _Kind  ;
+       property Poins[ const I_:Integer ] :TvtkPoin   read GetPoins  write SetPoins ;
+       property PoinsN                    :Integer    read GetPoinsN write SetPoinsN;
      end;
 
 //const //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【定数】
@@ -174,7 +108,14 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 implementation //############################################################### ■
 
-uses System.SysUtils, System.Classes, System.RegularExpressions;
+uses LUX.Asset.VisToolkit.Cells.LINEAR,
+     LUX.Asset.VisToolkit.Cells.QUADRATIC,
+     LUX.Asset.VisToolkit.Cells.CUBIC,
+     LUX.Asset.VisToolkit.Cells.CONVEX,
+     LUX.Asset.VisToolkit.Cells.POLYHEDRON,
+     LUX.Asset.VisToolkit.Cells.PARAMETRIC,
+     LUX.Asset.VisToolkit.Cells.HIGHER,
+     LUX.Asset.VisToolkit.Cells.LAGRANGE;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【レコード】
 
@@ -196,156 +137,99 @@ begin
      _Poins[ I_ ] := Poin_;
 end;
 
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
+//------------------------------------------------------------------------------
 
-constructor TvtkCell.Create( const PoinsN_:Integer );
+function TvtkCell.GetPoinsN :Integer;
 begin
-     inherited Create;
+     Result := Length( _Poins );
+end;
 
+procedure TvtkCell.SetPoinsN( const PoinsN_:Integer );
+begin
      SetLength( _Poins, PoinsN_ );
 end;
 
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
+
+class function TvtkCell.New( const Kind_:TCellTypes ) :TvtkCell;
+begin
+     inherited;
+
+     case Integer( Kind_ ) of
+      /// Linear cells
+      00: Result := TvtkCell00.Create;
+      01: Result := TvtkCell01.Create;
+      02: Result := TvtkCell02.Create;
+      03: Result := TvtkCell03.Create;
+      04: Result := TvtkCell04.Create;
+      05: Result := TvtkCell05.Create;
+      06: Result := TvtkCell06.Create;
+      07: Result := TvtkCell07.Create;
+      08: Result := TvtkCell08.Create;
+      09: Result := TvtkCell09.Create;
+      10: Result := TvtkCell10.Create;
+      11: Result := TvtkCell11.Create;
+      12: Result := TvtkCell12.Create;
+      13: Result := TvtkCell13.Create;
+      14: Result := TvtkCell14.Create;
+      15: Result := TvtkCell15.Create;
+      16: Result := TvtkCell16.Create;
+      /// Quadratic, isoparametric cells
+      21: Result := TvtkCell21.Create;
+      22: Result := TvtkCell22.Create;
+      23: Result := TvtkCell23.Create;
+      36: Result := TvtkCell36.Create;
+      24: Result := TvtkCell24.Create;
+      25: Result := TvtkCell25.Create;
+      26: Result := TvtkCell26.Create;
+      27: Result := TvtkCell27.Create;
+      28: Result := TvtkCell28.Create;
+      29: Result := TvtkCell29.Create;
+      30: Result := TvtkCell30.Create;
+      31: Result := TvtkCell31.Create;
+      32: Result := TvtkCell32.Create;
+      33: Result := TvtkCell33.Create;
+      34: Result := TvtkCell34.Create;
+      /// Cubic, isoparametric cell
+      35: Result := TvtkCell35.Create;
+      /// Special class of cells formed by convex group of points
+      41: Result := TvtkCell41.Create;
+      /// Polyhedron cell (consisting of polygonal faces)
+      42: Result := TvtkCell42.Create;
+      /// Higher order cells in parametric form
+      51: Result := TvtkCell51.Create;
+      52: Result := TvtkCell52.Create;
+      53: Result := TvtkCell53.Create;
+      54: Result := TvtkCell54.Create;
+      55: Result := TvtkCell55.Create;
+      56: Result := TvtkCell56.Create;
+      /// Higher order cells
+      60: Result := TvtkCell60.Create;
+      61: Result := TvtkCell61.Create;
+      62: Result := TvtkCell62.Create;
+      63: Result := TvtkCell63.Create;
+      64: Result := TvtkCell64.Create;
+      65: Result := TvtkCell65.Create;
+      66: Result := TvtkCell66.Create;
+      67: Result := TvtkCell67.Create;
+      /// Arbitrary order Lagrange elements (formulated separated from generic higher order cells)
+      68: Result := TvtkCell68.Create;
+      69: Result := TvtkCell69.Create;
+      70: Result := TvtkCell70.Create;
+      71: Result := TvtkCell71.Create;
+      72: Result := TvtkCell72.Create;
+      73: Result := TvtkCell73.Create;
+      74: Result := TvtkCell74.Create;
+     end;
+end;
+
+constructor TvtkCell.Create;
+begin
+     inherited;
+
+end;
+
 destructor TvtkCell.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell01
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell01.Create;
-begin
-     inherited Create( 1 );
-
-end;
-
-destructor TvtkCell01.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell05
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell05.Create;
-begin
-     inherited Create( 3 );
-
-end;
-
-destructor TvtkCell05.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell09
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell09.Create;
-begin
-     inherited Create( 4 );
-
-end;
-
-destructor TvtkCell09.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell10
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell10.Create;
-begin
-     inherited Create( 4 );
-
-end;
-
-destructor TvtkCell10.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell12
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell12.Create;
-begin
-     inherited Create( 8 );
-
-end;
-
-destructor TvtkCell12.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell13
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell13.Create;
-begin
-     inherited Create( 6 );
-
-end;
-
-destructor TvtkCell13.Destroy;
-begin
-
-     inherited;
-end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell14
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-constructor TvtkCell14.Create;
-begin
-     inherited Create( 5 );
-
-end;
-
-destructor TvtkCell14.Destroy;
 begin
 
      inherited;
