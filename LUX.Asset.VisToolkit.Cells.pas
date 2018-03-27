@@ -2,7 +2,7 @@
 
 interface //#################################################################### ■
 
-uses LUX,
+uses LUX, LUX.D1, LUX.D2, LUX.D3,
      LUX.Asset.VisToolkit;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【型】
@@ -83,8 +83,10 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
      TvtkCell = class( TvtkElem )
      private
      protected
-       _Kind  :TCellTypes;
-       _Poins :TArray<TvtkPoin>;
+       _Kind   :TCellTypes;
+       _Poins  :TArray<TvtkPoin>;
+       _Scalar :Single;
+       _Vector :TSingle3D;
        ///// アクセス
        function GetPoins( const I_:Integer ) :TvtkPoin;
        procedure SetPoins( const I_:Integer; const Poin_:TvtkPoin );
@@ -98,6 +100,8 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        property Kind                      :TCellTypes read   _Kind   write   _Kind  ;
        property Poins[ const I_:Integer ] :TvtkPoin   read GetPoins  write SetPoins ;
        property PoinsN                    :Integer    read GetPoinsN write SetPoinsN;
+       property Scalar                    :Single     read   _Scalar write   _Scalar;
+       property Vector                    :TSingle3D  read   _Vector write   _Vector;
      end;
 
 //const //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【定数】
