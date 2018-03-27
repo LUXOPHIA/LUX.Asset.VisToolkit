@@ -66,9 +66,13 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
      TvtkCell25 = class( TvtkCell )
      private
      protected
+       ///// アクセス
+       function GetGrids( const X_,Y_,Z_:Byte ) :TvtkPoin;
      public
        constructor Create;
        destructor Destroy; override;
+       ///// プロパティ
+       property Grids[ const X_,Y_,Z_:Byte ] :TvtkPoin read GetGrids;
      end;
 
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TvtkCell26
@@ -278,6 +282,63 @@ end;
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
+
+/////////////////////////////////////////////////////////////////////// アクセス
+
+function TvtkCell25.GetGrids( const X_,Y_,Z_:Byte ) :TvtkPoin;
+begin
+     //          220---------221---------222
+     //          /|          /|          /|
+     //         / |         / |         / |
+     //        /  |        /  |        /  |
+     //      120---------121---------122  |
+     //      /|   |      /|   |      /|   |
+     //     / |  210----/-|--211----/-|--212
+     //    /  |  /|    /  |  /|    /  |  /|
+     //  020---------021---------022  | / |
+     //   |   |/  |   |   |/  |   |   |/  |
+     //   |  110------|--111------|--112  |
+     //   |  /|   |   |  /|   |   |  /|   |
+     //   | / |  200--|-/-|--201--|-/-|--202
+     //   |/  |  /    |/  |  /    |/  |  /
+     //  010---------011---------012  | /
+     //   |   |/      |   |/      |   |/
+     //   |  100------|--101------|--102
+     //   |  /        |  /        |  /
+     //   | /         | /         | /
+     //   |/          |/          |/
+     //  000---------001---------002
+
+     case 9 * Z_ + 3 * Y_ + X_ of
+      00: Result := Poins[ 00 ];
+      01: Result := Poins[ 08 ];
+      02: Result := Poins[ 01 ];
+      03: Result := Poins[ 16 ];
+      04: Result := nil;
+      05: Result := Poins[ 17 ];
+      06: Result := Poins[ 04 ];
+      07: Result := Poins[ 12 ];
+      08: Result := Poins[ 05 ];
+      09: Result := Poins[ 11 ];
+      10: Result := nil;
+      11: Result := Poins[ 09 ];
+      12: Result := nil;
+      13: Result := nil;
+      14: Result := nil;
+      15: Result := Poins[ 15 ];
+      16: Result := nil;
+      17: Result := Poins[ 13 ];
+      18: Result := Poins[ 03 ];
+      19: Result := Poins[ 10 ];
+      20: Result := Poins[ 02 ];
+      21: Result := Poins[ 19 ];
+      22: Result := nil;
+      23: Result := Poins[ 18 ];
+      24: Result := Poins[ 07 ];
+      25: Result := Poins[ 14 ];
+      26: Result := Poins[ 06 ];
+     end;
+end;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
 
