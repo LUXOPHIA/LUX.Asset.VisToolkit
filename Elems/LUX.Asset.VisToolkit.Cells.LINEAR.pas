@@ -3,7 +3,7 @@
 interface //#################################################################### ■
 
 uses LUX, LUX.D1, LUX.D2, LUX.D3,
-     LUX.Asset.VisToolkit, LUX.Asset.VisToolkit.Cells;
+     LUX.Asset.VisToolkit_, LUX.Asset.VisToolkit.Cells;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【型】
 
