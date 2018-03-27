@@ -32,7 +32,6 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        _DataType :String;
        _Poins    :TObjectList<TvtkPoin>;
        _Cells    :TObjectList<TvtkCell>;
-       function ReadPOINTS2( const M_:TMatch ) :TArray<TSingle3D>;
      public
        constructor Create;
        destructor Destroy; override;
@@ -87,34 +86,6 @@ end;
 
 /////////////////////////////////////////////////////////////////////// メソッド
 
-function TVisToolkit.ReadPOINTS2( const M_:TMatch ) :TArray<TSingle3D>;
-var
-   PsN, N, J :Integer;
-   PsT :String;
-   Vs :TArray<String>;
-   P :TSingle3D;
-begin
-     with M_ do
-     begin
-          PsN := Groups[ 1 ].Value.ToInteger;
-          PsT := Groups[ 2 ].Value;
-     end;
-
-     Assert( PsT = 'float', 'PsT = ' + PsT );
-
-     //Vs := ReadValues( 3 * PsN );
-
-     J := 0;
-     for N := 1 to PsN do
-     begin
-          P.X := Vs[ J ].ToSingle;  Inc( J );
-          P.Y := Vs[ J ].ToSingle;  Inc( J );
-          P.Z := Vs[ J ].ToSingle;  Inc( J );
-
-          Result := Result + [ P ];
-     end;
-end;
-
 procedure TVisToolkit.LoadFromFile( const FileName_:String );
 var
    REs :TArray<TRegEx>;
@@ -160,7 +131,7 @@ var
           Assert( _DataType = 'UNSTRUCTURED_GRID', '_DataType = ' + _DataType );
      end;
      //·································
-     function ReadPoins( const M_:TMatch ) :TArray<TSingle3D>;
+     function ReadPoinPosis( const M_:TMatch ) :TArray<TSingle3D>;
      var
         PsN, N, J :Integer;
         PsT :String;
@@ -188,7 +159,7 @@ var
           end;
      end;
      //·································
-     function ReadCells( const M_:TMatch ) :TArray2<Integer>;
+     function ReadCellPoins( const M_:TMatch ) :TArray2<Integer>;
      var
         CsN, I, VsN, J, PsN, K :Integer;
         Vs :TArray<String>;
@@ -217,7 +188,7 @@ var
           end;
      end;
      //·································
-     function ReadTypes( const M_:TMatch ) :TArray<TCellTypes>;
+     function ReadCellTypes( const M_:TMatch ) :TArray<TCellTypes>;
      var
         CsN, I :Integer;
         Vs :TArray<String>;
@@ -228,20 +199,43 @@ var
 
           for I := 0 to CsN-1 do Result := Result + [ TCellTypes( Vs[ I ].ToInteger ) ];
      end;
+     //·································
+     function ReadCellDatas( const M_:TMatch ) :TArray<Single>;
+     var
+        CsN, I :Integer;
+        Ws :TArray<String>;
+     begin
+          with M_ do CsN := Groups[ 1 ].Value.ToInteger;
+
+          Ws := ReadLine.Split( [ ' ' ] );
+
+          Assert( Ws[ 0 ] = 'SCALARS', 'Ws[ 0 ] = ' + Ws[ 0 ] );
+          Assert( Ws[ 2 ] = 'float'  , 'Ws[ 2 ] = ' + Ws[ 2 ] );
+
+          Ws := ReadLine.Split( [ ' ' ] );
+
+          Assert( Ws[ 0 ] = 'LOOKUP_TABLE', 'Ws[ 0 ] = ' + Ws[ 0 ] );
+
+          Ws := ReadValues( CsN );
+
+          for I := 0 to CsN-1 do Result := Result + [ Ws[ I ].ToSingle ];
+     end;
 //······································
 var
    L :String;
    I, K :Integer;
    M :TMatch;
-   Ps :TArray<TSingle3D>;
-   Cs :TArray2<Integer>;
-   Ts :TArray<TCellTypes>;
+   PPs :TArray<TSingle3D>;
+   CPs :TArray2<Integer>;
+   CTs :TArray<TCellTypes>;
+   CDs :TArray<Single>;
    Poin :TvtkPoin;
    Cell :TvtkCell;
 begin
      REs := [ TRegEx.Create( 'POINTS +([^ ]+) +([^ ]+)', [ TRegExOption.roCompiled ] ),
               TRegEx.Create( 'CELLS +([^ ]+) +([^ ]+)' , [ TRegExOption.roCompiled ] ),
-              TRegEx.Create( 'CELL_TYPES +([^ ]+)'     , [ TRegExOption.roCompiled ] ) ];
+              TRegEx.Create( 'CELL_TYPES +([^ ]+)'     , [ TRegExOption.roCompiled ] ),
+              TRegEx.Create( 'CELL_DATA +([^ ]+)'      , [ TRegExOption.roCompiled ] ) ];
 
      S := TStreamReader.Create( FileName_ );
      try
@@ -258,9 +252,10 @@ begin
                   if M.Success then
                   begin
                        case I of
-                         0:Ps := ReadPoins( M );
-                         1:Cs := ReadCells( M );
-                         2:Ts := ReadTypes( M );
+                         0: PPs := ReadPoinPosis( M );
+                         1: CPs := ReadCellPoins( M );
+                         2: CTs := ReadCellTypes( M );
+                         3: CDs := ReadCellDatas( M );
                        end;
                   end;
              end;
@@ -271,7 +266,7 @@ begin
      end;
 
      _Poins.Clear;
-     for I := 0 to High( Ps ) do
+     for I := 0 to High( PPs ) do
      begin
           Poin := TvtkPoin.Create;
 
@@ -279,24 +274,26 @@ begin
           begin
                ID := I;
 
-               Pos := Ps[ I ];
+               Pos := PPs[ I ];
           end;
 
           _Poins.Add( Poin );
      end;
 
      _Cells.Clear;
-     for I := 0 to High( Ts ) do
+     for I := 0 to High( CTs ) do
      begin
-          Cell := TvtkCell.New( Ts[ I ] );
+          Cell := TvtkCell.New( CTs[ I ] );
 
           with Cell do
           begin
                ID := I;
 
-               PoinsN := Length( Cs[ I ] );
+               PoinsN := Length( CPs[ I ] );
 
-               for K := 0 to PoinsN-1 do Poins[ K ] := _Poins[ Cs[ I, K ] ];
+               Scalar := CDs[ I ];
+
+               for K := 0 to PoinsN-1 do Poins[ K ] := _Poins[ CPs[ I, K ] ];
           end;
 
           _Cells.Add( Cell );
