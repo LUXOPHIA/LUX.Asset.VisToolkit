@@ -2,7 +2,7 @@
 
 interface //#################################################################### ■
 
-uses System.Generics.Collections, System.RegularExpressions,
+uses System.Generics.Collections,
      LUX, LUX.D1, LUX.D2, LUX.D3,
      LUX.Asset.VisToolkit,
      LUX.Asset.VisToolkit.Cells,
@@ -88,65 +88,66 @@ end;
 
 procedure TVisToolkit.LoadFromFile( const FileName_:String );
 var
-   REs :TArray<TRegEx>;
    S :TStreamReader;
 //······································
-     function ReadLine :String;
+     function ReadLineWords :TArray<String>;
      begin
           while not S.EndOfStream do
           begin
-               Result := S.ReadLine;
+               Result := S.ReadLine.Split( [ ' ' ] );
 
-               if Result <> '' then Break;
+               if Assigned( Result ) then Exit;
           end;
      end;
      //·································
-     function ReadValues( const N_:Integer ) :TArray<String>;
+     function ReadWords( const N_:Integer ) :TArray<String>;
      begin
           Result := [];
 
-          while Length( Result ) < N_ do Result := Result + ReadLine.Split( [ ' ' ] );
+          while Length( Result ) < N_ do Result := Result + ReadLineWords;
      end;
      //·································
      procedure ReadHeader;
+     var
+        Ws :TArray<String>;
      begin
-          with TRegEx.Create( '# +vtk +DataFile +Version +([^.]+\.[^.]+)' ).Match( ReadLine ) do
-          begin
-               Assert( Success, '# vtk DataFile Version' );
+          Ws := ReadLineWords;
 
-               _Version := Groups[ 1 ].Value;
-          end;
+          Assert( Ws[ 0 ] = '#'       , 'ReadHeader.#[ 0 ] = ' + Ws[ 0 ] );
+          Assert( Ws[ 1 ] = 'vtk'     , 'ReadHeader.#[ 1 ] = ' + Ws[ 1 ] );
+          Assert( Ws[ 2 ] = 'DataFile', 'ReadHeader.#[ 2 ] = ' + Ws[ 2 ] );
+          Assert( Ws[ 3 ] = 'Version' , 'ReadHeader.#[ 3 ] = ' + Ws[ 3 ] );
 
-          _Caption := ReadLine;
+          _Version := Ws[ 4 ];
 
-          _FileType := ReadLine;  Assert( _FileType = 'ASCII', '_FileType = ' + _FileType );
+          _Caption := ReadLineWords[ 0 ];
 
-          with TRegEx.Create( 'DATASET +([^ ]+)' ).Match( ReadLine ) do
-          begin
-               Assert( Success, 'DATASET' );
+          _FileType := ReadLineWords[ 0 ];
 
-               _DataType := Groups[ 1 ].Value;
-          end;
+          Assert( _FileType = 'ASCII', 'ReadHeader._FileType = ' + _FileType );
 
-          Assert( _DataType = 'UNSTRUCTURED_GRID', '_DataType = ' + _DataType );
+          Ws := ReadLineWords;
+
+          Assert( Ws[ 0 ] = 'DATASET', 'ReadHeader.DATASET[ 0 ] = ' + Ws[ 0 ] );
+
+          _DataType := Ws[ 1 ];
+
+          Assert( _DataType = 'UNSTRUCTURED_GRID', 'ReadHeader._DataType = ' + _DataType );
      end;
      //·································
-     function ReadPoinPosis( const M_:TMatch ) :TArray<TSingle3D>;
+     function ReadPoinPosis( const Ws_:TArray<String> ) :TArray<TSingle3D>;
      var
         PsN, N, J :Integer;
         PsT :String;
         Vs :TArray<String>;
         P :TSingle3D;
      begin
-          with M_ do
-          begin
-               PsN := Groups[ 1 ].Value.ToInteger;
-               PsT := Groups[ 2 ].Value;
-          end;
+          PsN := Ws_[ 1 ].ToInteger;
+          PsT := Ws_[ 2 ];
 
-          Assert( PsT = 'float', 'PsT = ' + PsT );
+          Assert( PsT = 'float', 'ReadPoinPosis.PsT = ' + PsT );
 
-          Vs := ReadValues( 3 * PsN );
+          Vs := ReadWords( 3 * PsN );
 
           J := 0;
           for N := 1 to PsN do
@@ -159,19 +160,16 @@ var
           end;
      end;
      //·································
-     function ReadCellPoins( const M_:TMatch ) :TArray2<Integer>;
+     function ReadCellPoins( const Ws_:TArray<String> ) :TArray2<Integer>;
      var
         CsN, I, VsN, J, PsN, K :Integer;
         Vs :TArray<String>;
         Ps :TArray<Integer>;
      begin
-          with M_ do
-          begin
-               CsN := Groups[ 1 ].Value.ToInteger;
-               VsN := Groups[ 2 ].Value.ToInteger;
-          end;
+          CsN := Ws_[ 1 ].ToInteger;
+          VsN := Ws_[ 2 ].ToInteger;
 
-          Vs := ReadValues( VsN );
+          Vs := ReadWords( VsN );
 
           J := 0;
           for I := 0 to CsN-1 do
@@ -188,43 +186,43 @@ var
           end;
      end;
      //·································
-     function ReadCellTypes( const M_:TMatch ) :TArray<TCellTypes>;
+     function ReadCellTypes( const Ws_:TArray<String> ) :TArray<TCellTypes>;
      var
         CsN, I :Integer;
         Vs :TArray<String>;
      begin
-          with M_ do CsN := Groups[ 1 ].Value.ToInteger;
+          CsN := Ws_[ 1 ].ToInteger;
 
-          Vs := ReadValues( CsN );
+          Vs := ReadWords( CsN );
 
           for I := 0 to CsN-1 do Result := Result + [ TCellTypes( Vs[ I ].ToInteger ) ];
      end;
      //·································
-     function ReadCellDatas( const M_:TMatch ) :TArray<Single>;
+     function ReadCellDatas( const Ws_:TArray<String> ) :TArray<Single>;
      var
         CsN, I :Integer;
         Ws :TArray<String>;
      begin
-          with M_ do CsN := Groups[ 1 ].Value.ToInteger;
+          CsN := Ws_[ 1 ].ToInteger;
 
-          Ws := ReadLine.Split( [ ' ' ] );
+          Ws := ReadLineWords;
 
-          Assert( Ws[ 0 ] = 'SCALARS', 'Ws[ 0 ] = ' + Ws[ 0 ] );
-          Assert( Ws[ 2 ] = 'float'  , 'Ws[ 2 ] = ' + Ws[ 2 ] );
+          Assert( Ws[ 0 ] = 'SCALARS', 'ReadCellDatas.SCALARS[ 0 ] = ' + Ws[ 0 ] );
+          Assert( Ws[ 2 ] = 'float'  , 'ReadCellDatas.SCALARS[ 2 ] = ' + Ws[ 2 ] );
 
-          Ws := ReadLine.Split( [ ' ' ] );
+          Ws := ReadLineWords;
 
-          Assert( Ws[ 0 ] = 'LOOKUP_TABLE', 'Ws[ 0 ] = ' + Ws[ 0 ] );
+          Assert( Ws[ 0 ] = 'LOOKUP_TABLE', 'ReadCellDatas.LOOKUP_TABLE[ 0 ] = ' + Ws[ 0 ] );
 
-          Ws := ReadValues( CsN );
+          Ws := ReadWords( CsN );
 
           for I := 0 to CsN-1 do Result := Result + [ Ws[ I ].ToSingle ];
      end;
 //······································
 var
    L :String;
+   Ws :TArray<String>;
    I, K :Integer;
-   M :TMatch;
    PPs :TArray<TSingle3D>;
    CPs :TArray2<Integer>;
    CTs :TArray<TCellTypes>;
@@ -232,11 +230,6 @@ var
    Poin :TvtkPoin;
    Cell :TvtkCell;
 begin
-     REs := [ TRegEx.Create( 'POINTS +([^ ]+) +([^ ]+)', [ TRegExOption.roCompiled ] ),
-              TRegEx.Create( 'CELLS +([^ ]+) +([^ ]+)' , [ TRegExOption.roCompiled ] ),
-              TRegEx.Create( 'CELL_TYPES +([^ ]+)'     , [ TRegExOption.roCompiled ] ),
-              TRegEx.Create( 'CELL_DATA +([^ ]+)'      , [ TRegExOption.roCompiled ] ) ];
-
      S := TStreamReader.Create( FileName_ );
      try
         ReadHeader;
@@ -245,20 +238,15 @@ begin
         begin
              L := S.ReadLine;  if L = '' then Continue;
 
-             for I := 0 to High( REs ) do
-             begin
-                  M := REs[ I ].Match( L );
+             Ws := L.Split( [ ' ' ] );
 
-                  if M.Success then
-                  begin
-                       case I of
-                         0: PPs := ReadPoinPosis( M );
-                         1: CPs := ReadCellPoins( M );
-                         2: CTs := ReadCellTypes( M );
-                         3: CDs := ReadCellDatas( M );
-                       end;
-                  end;
-             end;
+             if Ws[ 0 ] = 'POINTS'     then PPs := ReadPoinPosis( Ws )
+                                       else
+             if Ws[ 0 ] = 'CELLS'      then CPs := ReadCellPoins( Ws )
+                                       else
+             if Ws[ 0 ] = 'CELL_TYPES' then CTs := ReadCellTypes( Ws )
+                                       else
+             if Ws[ 0 ] = 'CELL_DATA'  then CDs := ReadCellDatas( Ws );
         end;
 
      finally
@@ -281,7 +269,7 @@ begin
      end;
 
      _Cells.Clear;
-     for I := 0 to High( CTs ) do
+     for I := 0 to High( CPs ) do
      begin
           Cell := TvtkCell.New( CTs[ I ] );
 
